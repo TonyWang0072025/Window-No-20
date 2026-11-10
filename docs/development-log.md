@@ -14,7 +14,8 @@
 | 面包板安装 | 用户已反馈 | 已指导断电安装至 b / i 列、第 1–19 行；用户回复“插好了”，不是电气测量结果 |
 | OLED 识别 | 部分完成 | 四针 GND / VDD / SCK / SDA 已由照片确认；具体驱动、分辨率与供电规格未确认 |
 | `serial_smoke` 编译 | 通过 | PlatformIO 6.2.0 / Espressif 32 8.0.0 / Arduino-ESP32 3.3.12；最终构建返回 0、显示 SUCCESS，无编译警告；程序 288212 / 1310720 字节，RAM 22116 / 327680 字节 |
-| `serial_smoke` 烧录与运行 | 未测 | 等待重新连接开发板，再执行烧录并读取串口 |
+| `serial_smoke` 烧录 | 通过 | COM5、115200 baud，PlatformIO 上传返回 0，所有写入段均报告 Hash of data verified，最终 SUCCESS |
+| `serial_smoke` 真机运行 | 通过 | pySerial 按字节块接收，7.016 秒内取得 7 条 RUNNING，相邻运行时间均增加 1000 ms；本次采样期间未见重启 |
 | P0 OLED 与三键 | 未测 | 未接线、未编译相关功能、未在真机运行 |
 | P1–P3 与正式低功耗 | 未测 | 尚未实现 |
 
@@ -28,7 +29,39 @@
   固件在 `D:\Window-No-20-Tools\platformio-build\serial_smoke\firmware.bin`，未将二进制或依赖提交到仓库。
 - 固件 SHA-256：`c39f1c3520ec73ab196cdc902e11089a03c8005243b479d4a18dbbb21c88d96c`。
 - 1310720 字节是当前应用分区上限，不是整块 4 MB Flash 的容量；以上占用也不代表完整产品占用。
-- 尚未执行烧录或串口运行验收；没有以桌面单元测试代替真机结果。
+- 已执行真实 USB 烧录及串口运行验收；没有以桌面单元测试代替真机结果。
+
+### 首次烧录与真实运行
+
+- 上传前再次确认 CP2102 设备状态 OK、COM5，以及固件 SHA-256 与上述编译产物一致。
+- 上传命令：`python -m platformio run --project-dir firmware --environment serial_smoke --target upload --upload-port COM5`。
+- 上传日志保存在本机 `D:\Window-No-20-Tools\serial-smoke-upload.log`。
+- 原始运行数据和采样结果分别保存在本机 `D:\Window-No-20-Tools\serial-smoke-runtime.log`
+  与 `D:\Window-No-20-Tools\serial-smoke-runtime-result.json`。
+- 接收方法：COM5、115200 baud，关闭 DTR / RTS 后打开端口、清空接收缓冲区，
+  执行 `read(2048)`，超时 7 秒；关闭串口后按换行解析收到的字节块。
+
+真实采样输出：
+
+```text
+RUNNING uptime_ms=235317
+RUNNING uptime_ms=236317
+RUNNING uptime_ms=237317
+RUNNING uptime_ms=238317
+RUNNING uptime_ms=239317
+RUNNING uptime_ms=240317
+RUNNING uptime_ms=241317
+```
+
+本次基础通信与运行验收通过，仍不代表长时间稳定性、OLED、按钮、产品功能或低功耗通过。
+
+### 串口接收中观察到的限制
+
+- 最初使用 Python `readline()`、随后使用 .NET `ReadLine()`，都读到了重复的同一条时间值；
+  这两次逐行接收结果没有用于判定运行通过。
+- 改为按字节块 `read(512)` 后，在三次独立接收中读到正常递增的运行时间；
+  最终又以 `read(2048)` 连续采样 7 秒通过。固件代码在这期间没有修改。
+- 逐行读取异常的底层原因尚未定位，未将其归因于具体驱动或固件；当前验证日志采用块接收。
 
 ### 本机安装过程中的已解决问题
 
@@ -37,9 +70,11 @@
   Microsoft Windows Hardware Compatibility Publisher，安装后确认设备问题代码为 0。
 - Python 工具下载受本机 HTTPS 代理协议配置影响；仅在安装子进程内改用 HTTP 代理连接，
   安装在项目专用虚拟环境，未修改系统代理或全局 Python 环境。
+- 首次上传还需补装文件系统工具；未带上述代理设置的首次调用在补装阶段报 HTTPClientError，
+  尚未开始写 Flash。为上传子进程应用同一代理设置后，补装、上传和校验成功。
 
-### 下一次真机操作
+### 下一次硬件准备
 
-只连接开发板 USB，不接 OLED、按钮、电池或面包板电源模块。
-先确认端口，再烧录串口测试程序，最后读取真实运行输出。
+核实 OLED 的实际供电电压、驱动和分辨率，查阅套件配套资料后再给出接线表。
+接外设之前先拔掉开发板 USB；电池和面包板电源模块继续不接。
 首次烧录成功不等同于 P0 验收通过。

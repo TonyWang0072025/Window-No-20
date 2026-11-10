@@ -47,6 +47,9 @@ $env:PLATFORMIO_BUILD_DIR = 'D:\Window-No-20-Tools\platformio-build'
 & $toolPython -m platformio run --project-dir firmware --environment serial_smoke
 ```
 
+本机需要联网下载组件时，在该 PowerShell 子进程额外设置
+`$env:HTTPS_PROXY = 'http://127.0.0.1:7897'`，对应当前本机代理配置；未修改系统代理。
+
 本机大体积依赖和构建产物保存在仓库外的上述 D 盘目录。
 其他电脑不设这两个环境变量也可构建，默认构建目录 `firmware/.pio/` 已加入忽略列表。
 
@@ -79,3 +82,7 @@ RUNNING uptime_ms=1300
 验收：烧录工具报告成功，并在真实开发板上连续读到至少五条 `RUNNING`，
 运行时间每条相隔约 1000 ms；没有反复重启。芯片名和修订号的输出形式以框架实际返回为准。
 编译结果与真机结果分别记在 [开发验证记录](../docs/development-log.md)。
+
+本机已观察到 `readline()` / `.NET ReadLine()` 返回重复时间值，底层原因尚未定位。
+本次实际验收采用 pySerial `read(2048)`、7 秒超时接收字节块后按换行解析，
+连续收到7条间隔1000毫秒的真实记录；详见上述验证记录。
