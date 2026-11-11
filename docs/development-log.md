@@ -202,3 +202,14 @@ RUNNING uptime_ms=241317
 - 本机日志位于 `D:\Window-No-20-Tools`：button-smoke-red-build.log、button-smoke-build.log、
   button-smoke-rom-upload.log、button-smoke-startup.bin/.log、button-smoke-first-press.bin/.log。
 - 编译方法、接线和复现步骤见 `firmware/button_smoke/README.md`。无桌面后台监视器长期运行。
+
+### 第一只按钮实物反馈
+
+- 作者确认按一下计数变1、松开显示RELEASED；随后自行进行多次及快速按压，反馈完全正常。
+  作者未提供连击次数/间隔或测试时长，不将该反馈换算为最大响应频率或正式压力测试指标。
+- Codex随后6.02秒串口采样取得6条完整状态，均为raw=1、pressed=0、count=18，
+  uptime从222380递增到227385，约每1001ms一条；采样期间计数稳定，未见重启。
+  初次0.02秒重复数据不用于通过判断，使用后续稳定采样。
+- 软件自检、空闲、单次按下/释放与作者提供的连按观察通过。
+  2秒持续按住尚无独立量化实物记录；第二、第三只按钮和完整P0尚未验收。
+- 证据：本机 `button-one-after-user-press-confirm.bin/.log`，加本次作者的实物文字反馈。
