@@ -4,7 +4,7 @@
 它每秒输出一次运行时间，仅使用板载 USB 串口，不控制外接 OLED 或按钮，也不读写产品存档。
 `oled_smoke` 是单独的首次点亮工程，检测 I2C 应答并尝试显示 128×64 测试画面。
 `gpio_loopback` 是独立信号线回路诊断，正对照尚未进行。
-`button_smoke` 保留OLED，测试P25上的第一只按钮，见[按钮诊断指南](button_smoke/README.md)。
+`button_smoke` 保留OLED，v0.2分别测试P25/P26/P27的三只按钮，见[按钮诊断指南](button_smoke/README.md)。
 **当前板内为button_smoke**；这些诊断程序均不代表 P0 产品交互已完成。
 
 ## 已识别的原型硬件

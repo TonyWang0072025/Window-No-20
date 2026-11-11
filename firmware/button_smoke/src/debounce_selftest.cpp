@@ -52,6 +52,18 @@ bool runDebounceSelfTest() {
     return false;
   }
   ++passed;
+  DebouncedButton peers[3];
+  for (auto &peer : peers) {
+    peer.begin(false, 0);
+  }
+  if (peers[0].update(true, 1) != ButtonEdge::None ||
+      peers[0].update(true, 31) != ButtonEdge::Pressed ||
+      peers[1].update(false, 31) != ButtonEdge::None || peers[1].isPressed() ||
+      peers[2].update(false, 31) != ButtonEdge::None || peers[2].isPressed()) {
+    Serial.println("DEBOUNCE_SELFTEST FAIL independent_buttons");
+    return false;
+  }
+  passed += 6;
   Serial.printf("DEBOUNCE_SELFTEST PASS checks=%u\n", passed);
   return true;
 }

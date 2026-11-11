@@ -4,11 +4,16 @@
 #include <Adafruit_SSD1306.h>
 #include "../../shared/DebouncedButton.h"
 
-// 第一只按钮：d15/d17/g15/g17，c15接GND，h17接P25。
-constexpr int kButtonPin = 25;
+// 三只按钮使用独立GPIO输入；仅诊断，不触发产品菜单。
+struct ButtonChannel {
+  int pin;
+  const char *name;
+  DebouncedButton input;
+  uint32_t count;
+};
+ButtonChannel buttons[] = {{25, "BACK", {}, 0}, {26, "SWITCH", {}, 0},
+                           {27, "OK", {}, 0}};
 Adafruit_SSD1306 display(128, 64, &Wire, -1, 100000, 100000);
-DebouncedButton button;
-uint32_t pressCount = 0;
 uint32_t lastHeartbeat = 0;
 bool redraw = true;
 const char *errorMessage = nullptr;
@@ -17,13 +22,15 @@ bool runDebounceSelfTest();
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("WINDOW_NO_20 BUTTON_SMOKE v0.1");
+  Serial.println("WINDOW_NO_20 BUTTON_SMOKE v0.2");
   if (!runDebounceSelfTest()) {
     errorMessage = "BUTTON_ERROR DEBOUNCE_SELFTEST_FAILED";
     return;
   }
-  pinMode(kButtonPin, INPUT_PULLUP);
-  button.begin(digitalRead(kButtonPin) == LOW, millis());
+  for (auto &button : buttons) {
+    pinMode(button.pin, INPUT_PULLUP);
+    button.input.begin(digitalRead(button.pin) == LOW, millis());
+  }
   if (!Wire.begin(21, 22, 100000)) {
     errorMessage = "BUTTON_ERROR I2C_BUS_INIT_FAILED";
     return;
@@ -48,8 +55,10 @@ void setup() {
     errorMessage = "BUTTON_ERROR OLED_BUFFER_INIT_FAILED";
     return;
   }
-  Serial.printf("BUTTON_READY pin=25 active_low=1 debounce_ms=30 initial_pressed=%u\n",
-                static_cast<unsigned>(button.isPressed()));
+  for (const auto &button : buttons) {
+    Serial.printf("BUTTON_READY pin=%d name=%s active_low=1 debounce_ms=30 initial_pressed=%u\n",
+                  button.pin, button.name, static_cast<unsigned>(button.input.isPressed()));
+  }
 }
 
 void loop() {
@@ -62,22 +71,27 @@ void loop() {
     delay(2);
     return;
   }
-  const int raw = digitalRead(kButtonPin);
-  const ButtonEdge edge = button.update(raw == LOW, now);
-  if (edge != ButtonEdge::None) {
-    if (edge == ButtonEdge::Pressed) {
-      ++pressCount;
+  for (auto &button : buttons) {
+    const ButtonEdge edge = button.input.update(digitalRead(button.pin) == LOW, now);
+    if (edge != ButtonEdge::None) {
+      if (edge == ButtonEdge::Pressed) {
+        ++button.count;
+      }
+      Serial.printf("BUTTON_EVENT pin=%d name=%s event=%s count=%lu uptime_ms=%lu\n",
+                    button.pin, button.name,
+                    edge == ButtonEdge::Pressed ? "PRESSED" : "RELEASED",
+                    static_cast<unsigned long>(button.count), static_cast<unsigned long>(now));
+      redraw = true;
     }
-    Serial.printf("BUTTON_EVENT pin=25 event=%s count=%lu uptime_ms=%lu\n",
-                  edge == ButtonEdge::Pressed ? "PRESSED" : "RELEASED",
-                  static_cast<unsigned long>(pressCount), static_cast<unsigned long>(now));
-    redraw = true;
   }
   if (now - lastHeartbeat >= 1000) {
     lastHeartbeat = now;
-    Serial.printf("BUTTON_STATE pin=25 raw=%d pressed=%u count=%lu uptime_ms=%lu\n",
-                  raw, static_cast<unsigned>(button.isPressed()),
-                  static_cast<unsigned long>(pressCount), static_cast<unsigned long>(now));
+    for (const auto &button : buttons) {
+      Serial.printf("BUTTON_STATE pin=%d name=%s raw=%d pressed=%u count=%lu uptime_ms=%lu\n",
+                    button.pin, button.name, digitalRead(button.pin),
+                    static_cast<unsigned>(button.input.isPressed()),
+                    static_cast<unsigned long>(button.count), static_cast<unsigned long>(now));
+    }
     redraw = true;
   }
   if (redraw) {
@@ -86,12 +100,15 @@ void loop() {
     display.setTextColor(SSD1306_WHITE);
     display.setTextSize(1);
     display.setCursor(6, 5);
-    display.print("BUTTON TEST");
-    display.setCursor(6, 19);
-    display.printf("P25: %s", button.isPressed() ? "PRESSED" : "RELEASED");
-    display.setCursor(6, 32);
-    display.printf("PRESS COUNT: %lu", static_cast<unsigned long>(pressCount));
-    display.setCursor(6, 47);
+    display.print("3 BUTTON TEST");
+    for (unsigned index = 0; index < 3; ++index) {
+      const auto &button = buttons[index];
+      display.setCursor(6, 17 + index * 12);
+      display.printf("%d %s %c %lu", button.pin, button.name,
+                     button.input.isPressed() ? 'P' : 'R',
+                     static_cast<unsigned long>(button.count));
+    }
+    display.setCursor(6, 53);
     display.printf("seconds: %lu", static_cast<unsigned long>(now / 1000));
     display.display();
     redraw = false;
