@@ -13,12 +13,13 @@ const char *error = nullptr;
 uint32_t lastHeartbeat = 0;
 uint16_t lastMinute = 0xffff;
 bool runRoomTests();
+bool runRoomViewTests(Adafruit_SSD1306 &display);
 
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("WINDOW_NO_20 P0_ROOM v0.1");
-  if (!runRoomTests()) { error = "P0_ERROR SELFTEST_FAILED"; return; }
+  Serial.println("WINDOW_NO_20 P1_FOCUS v0.2 time=REAL reward_store=TEST_RAM");
+  if (!runRoomTests()) { error = "P1_ERROR NAV_SELFTEST_FAILED"; return; }
   for (auto &input : inputs) {
     pinMode(input.pin, INPUT_PULLUP);
     input.debounce.begin(digitalRead(input.pin) == LOW, millis());
@@ -34,23 +35,39 @@ void setup() {
   }
   if (!address) { error = "P0_ERROR OLED_NO_ACK"; return; }
   if (!display.begin(SSD1306_SWITCHCAPVCC, address, true, false)) { error = "P0_ERROR OLED_BUFFER_FAILED"; return; }
-  Serial.println("P0_READY page=ROOM selected=NONE");
+  if (!runRoomViewTests(display)) { error = "P1_ERROR VIEW_SELFTEST_FAILED"; return; }
+  Serial.println("P1_READY selftests=PASS page=ROOM selected=NONE reward_store=TEST_RAM");
 }
 
 void loop() {
   const uint32_t now = millis();
+  const uint64_t monotonicMs = static_cast<uint64_t>(esp_timer_get_time()) / 1000ULL;
   if (error) {
     if (now - lastHeartbeat >= 1000) { lastHeartbeat = now; Serial.println(error); }
     delay(2);
     return;
   }
+  const auto starsBefore = model.focus.stars();
+  // 同轮多键只处理第一条按下，但仍采样所有去抖器，避免下一帧追补另一个动作。
+  bool pressed = false;
+  Key key = Key::Back;
+  int pin = 0;
   for (auto &input : inputs) {
     if (input.debounce.update(digitalRead(input.pin) == LOW, now) == ButtonEdge::Pressed) {
-      const bool changed = model.handle(input.key);
-      Serial.printf("KEY pin=%d changed=%u page=%s selected=%s uptime_ms=%lu\n", input.pin,
-                    static_cast<unsigned>(changed), model.pageName(), model.selectionName(), static_cast<unsigned long>(now));
-      dirty |= changed;
+      if (!pressed) { pressed = true; key = input.key; pin = input.pin; }
     }
+  }
+  if (pressed) {
+    dirty |= model.handle(key, monotonicMs);
+    Serial.printf("KEY pin=%d page=%s selected=%s focus=%s remaining_s=%lu\n", pin,
+                  model.pageName(), model.selectionName(), model.focus.stateName(),
+                  static_cast<unsigned long>(model.focus.secondsRemaining()));
+  }
+  dirty |= model.tick(monotonicMs);
+  if (model.focus.stars() != starsBefore) {
+    Serial.printf("P1_REWARD TEST_RAM delta=%lu total=%lu persisted=NO\n",
+                  static_cast<unsigned long>(model.focus.stars() - starsBefore),
+                  static_cast<unsigned long>(model.focus.stars()));
   }
   // 仅基础本地走时；校准、昼夜天气与闲置管理在P3实现。
   const uint16_t minute = (720ULL + static_cast<uint64_t>(esp_timer_get_time()) / 60000000ULL) % 1440ULL;
@@ -58,7 +75,10 @@ void loop() {
   if (dirty) { drawRoomView(display, model, minute); dirty = false; }
   if (now - lastHeartbeat >= 1000) {
     lastHeartbeat = now;
-    Serial.printf("P0_STATE page=%s selected=%s uptime_ms=%lu\n", model.pageName(), model.selectionName(), static_cast<unsigned long>(now));
+    Serial.printf("P1_STATE selftests=PASS page=%s selected=%s focus=%s remaining_s=%lu test_ram_stars=%lu uptime_ms=%lu\n",
+                  model.pageName(), model.selectionName(), model.focus.stateName(),
+                  static_cast<unsigned long>(model.focus.secondsRemaining()),
+                  static_cast<unsigned long>(model.focus.stars()), static_cast<unsigned long>(now));
   }
   delay(2);
 }
