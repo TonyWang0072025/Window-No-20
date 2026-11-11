@@ -176,3 +176,29 @@ RUNNING uptime_ms=241317
 - 此前故障更支持接触/连接条件影响，但安装方式和一根线同时改变，唯一原因未定位。
   没有测供电电压，也没有证明此前屏幕完全无电或元件损坏。
 - 三个按钮未接，P0完整交互未验收；产品功能、断电存档、低功耗与续航未测。
+
+## 2026-11-11：第一只按钮诊断就绪
+
+- 用户照片确认四脚按键；用户报告d15/d17/g15/g17，跨中央沟槽。
+  接线最终为c15→ESP32另一个空闲GND、h17→P25；用户确认接好并连接USB。
+  OLED现有接线保留，未接电阻或电池。
+- 新增 `firmware/button_smoke`，显示BUTTON TEST、P25状态、PRESS COUNT和秒数；
+  输入逻辑单独位于 `firmware/shared/DebouncedButton.h`，不修改产品行为规则。
+- 30ms去抖、按下单次触发、释放事件；启动已按住不伪造计数。启动自检18项覆盖：
+  按下/释放抖动、持续按住、再次按下、时间回绕、启动已按住。
+- 先添加自检用例，首次构建因输入类尚未实现而失败（缺少头文件，不是行为测试失败）；
+  实现后构建通过，无编译警告；真正逻辑用例在烧录后的ESP32上执行通过。
+- 平台/板型/库与OLED工程相同：espressif32 8.0.0、esp32dev、Arduino-ESP32 3.3.12、
+  SSD1306 2.5.17、GFX 1.13.0、BusIO 1.17.4。
+- 编译：通过；程序356656/1310720字节、RAM23692/327680；镜像362704字节，
+  SHA256为2d460cd73fb7e270b9fbbcb1d09a4c2542baf3937840042fb9093008a720647f。
+- 烧录：esptool5.6.0、ROM38400压缩，只写0x10000应用；55.2秒，哈希通过，返回0。
+- 启动采样8.12秒：`DEBOUNCE_SELFTEST PASS checks=18`，0x3C应答，
+  `BUTTON_READY ... initial_pressed=0`，随后7条状态raw=1/pressed=0/count=0，
+  时间1001～7007ms递增。启动、自检和空闲无误计数通过。
+- 随后12秒采样仍为count=0、松手状态；不能将尚未观察到的实际按压写成通过。
+- 已请作者只按一下再松开，观察是否变为1；此项与持续按住、再次按下的真实操作尚待反馈。
+  屏幕刷新沿用100kHz全帧传输，会暂时阻塞采样，快速连击响应尚未验证。
+- 本机日志位于 `D:\Window-No-20-Tools`：button-smoke-red-build.log、button-smoke-build.log、
+  button-smoke-rom-upload.log、button-smoke-startup.bin/.log、button-smoke-first-press.bin/.log。
+- 编译方法、接线和复现步骤见 `firmware/button_smoke/README.md`。无桌面后台监视器长期运行。
