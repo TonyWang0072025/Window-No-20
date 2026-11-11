@@ -85,7 +85,7 @@ RUNNING uptime_ms=241317
 - 资料存在旧LCD与OLED混用：接线图接3V3，示例用SSD1306；Python为128×64，Arduino仍为128×32。
   首轮据此采用3.3V、128×64、SSD1306兼容配置进行验证，不将示例当作实物芯片身份的证明。
 - OLED正面丝印与已插线照片交叉确认：GND紫、VDD灰、SCK白、SDA黑。
-- 用户已报告紫色线插入j2；其余三根已给出j19 / a17 / a14接线指导，尚待反馈。
+- 用户已报告紫色线插入j2，随后确认灰/白/黑三根已按j19 / a17 / a14接入，且报告这三根略松；未要求补拍照片。
   用户明确不需要逐根拍照，后续按文字确认推进；上电前仍需核对电源与线序。
 - 新增独立 `firmware/oled_smoke` 诊断工程：检测I2C应答，显示边框、文字、地址与秒数；不实现产品UI。
 - 编译：通过，返回0并显示SUCCESS，无编译警告；程序354868 / 1310720字节，RAM 23676 / 327680字节。
@@ -94,4 +94,23 @@ RUNNING uptime_ms=241317
   本机日志：`D:\Window-No-20-Tools\oled-smoke-compile.log`。
 - 固件路径：`D:\Window-No-20-Tools\platformio-build\oled_smoke\firmware.bin`；
   SHA-256：`8ca72bf9e82a1285eb8b7c60a7672812f2b710fd31b333018a73a0d93d4c2f4d`。
-- 烧录：未测。I2C应答与实际显示：未测。三个按钮：未接。
+- 烧录：首次尝试失败，见下述记录。I2C应答与实际显示：未测。三个按钮：未接。
+
+### 首次OLED烧录失败与只读检查
+
+- 四线接入后用户接回USB；CP2102设备状态OK，仍为COM5。确认OLED固件SHA-256与已编译产物一致。
+- PlatformIO / esptool 5.4.0在引导程序写入地址0x1000的校验阶段失败：
+  `MD5 of file does not match data in flash!`；OLED应用尚未写入，没有进入I2C或显示验收。
+- 输入引导文件23520字节，MD5 `bde5bdb324fc2138839012fc9702fb53`；
+  首次烧录工具返回的Flash MD5为 `161802a81ba0e86026aabc2ab5ff62bf`。
+- 随后仅做只读检查，未重复写Flash：esptool 5.6.0识别ESP32-D0WDQ6 v1.1、Flash 4MB、
+  Flash电压绑带值3.3V（不是万用表测量供电稳定性）。
+- 从0x1000读回23520字节两次，两份文件完全一致，MD5均为
+  `520151e519deb52ecc6aee076d1e2d03`，与输入文件不同。读回镜像解析失败，输入镜像校验和与验证哈希有效。
+- 原始证据保存在本机 `D:\Window-No-20-Tools\oled-smoke-upload.log`、
+  `oled-bootloader-readback-a.bin`、`oled-bootloader-readback-b.bin`；不提交含设备标识的原始日志。
+- 当前未确定底层原因，不能归因于线松、OLED损坏、驱动或Flash芯片故障。
+  最后一次读取使用 `--after no-reset`，设备停留在下载模式，须在后续恢复正常烧录与启动。
+- 下一步请求用户先断USB，只拔面包板端的灰/白/黑三根，紫色j2及OLED端插头保留；
+  再单独接USB，用相同程序文件进行外设隔离对比。先不重做安装、不改产品代码、不整片擦除Flash。
+- 排查参考：[乐鑫官方故障排除](https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html)。
