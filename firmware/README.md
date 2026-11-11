@@ -1,7 +1,9 @@
-# 固件开发与第一次串口测试
+# 固件开发与硬件诊断
 
-当前只有独立的 `serial_smoke` 测试程序，用于验证编译、烧录和真机运行。
-它每秒输出一次运行时间，仅使用板载 USB 串口，不控制外接 OLED 或按钮，也不读写产品存档，不代表 P0 已完成。
+`serial_smoke` 是独立串口测试程序，用于验证编译、烧录和真机运行。
+它每秒输出一次运行时间，仅使用板载 USB 串口，不控制外接 OLED 或按钮，也不读写产品存档。
+`oled_smoke` 是单独的首次点亮工程，检测 I2C 应答并尝试显示 128×64 测试画面。
+两个诊断程序均不代表 P0 产品交互已完成。
 
 ## 已识别的原型硬件
 
@@ -16,6 +18,13 @@
 | 面包板 | MB-102；用户报告开发板已插好，后续接线前保持断电 |
 | OLED | 实物四针标记依次 GND / VDD / SCK / SDA；驱动、分辨率和供电规格待核实 |
 
+OLED 配套教程的接线图使用 3V3，示例使用 SSD1306 驱动；下载包中 Python 示例为128×64，
+Arduino 示例仍为128×32，正文还有旧LCD参数。因此首轮测试采用3.3V和SSD1306兼容128×64配置，
+是否适用于实际屏幕须以 I2C 应答和实际显示结果确认。
+来源：[套件教程](https://doc.7gp.cn/esp32-kits/beginner/Arduino/arduino-tutorial/)、
+[接线图](https://doc.7gp.cn/esp32-kits/media/229ce4e1ad8b01c71577d8f777e8195b.png)、
+[配套代码入口](https://doc.7gp.cn/esp32-kits/beginner/board/downloads/)。
+
 商品图的 CH340 标记与实物不符，按实物使用 CP210x 驱动。
 硬件通信记录不包含设备 MAC 地址或其他个人标识。
 
@@ -25,7 +34,7 @@
 - Arduino-ESP32 **3.3.12**：由上述平台提供；后续 ESP32-C3 可继续使用同一开发框架。
 - 板型：**ESP32 Dev Module**，PlatformIO ID `esp32dev`；Flash 4 MB，上传前核实实际串口。
 - 串口输出：**115200 baud**。
-- 本测试无需额外 Arduino 库。独立诊断工具 esptool **5.6.0** 用于之前的芯片信息读取。
+- 串口测试无需额外 Arduino 库。独立诊断工具 esptool **5.6.0** 用于之前的芯片信息读取。
 
 安装依据：[PlatformIO 平台 8.0.0 发布说明](https://github.com/platformio/platform-espressif32/releases/tag/v8.0.0)、[ESP32 Dev Module 配置](https://docs.platformio.org/en/latest/boards/espressif32/esp32dev.html)。
 
@@ -86,3 +95,41 @@ RUNNING uptime_ms=1300
 本机已观察到 `readline()` / `.NET ReadLine()` 返回重复时间值，底层原因尚未定位。
 本次实际验收采用 pySerial `read(2048)`、7 秒超时接收字节块后按换行解析，
 连续收到7条间隔1000毫秒的真实记录；详见上述验证记录。
+
+## OLED 首次点亮工程
+
+### 当前接线表
+
+本表只对应已识别的38针板、USB口朝上、两排针在面包板b/i列且占第1～19行的布局。
+其他摆放位置按 GPIO / 电源标记重新核对，不套用这里的孔位。
+
+| OLED丝印 | 照片确认线色 | 开发板连接 | 当前布局的面包板孔 |
+| --- | --- | --- | --- |
+| GND | 紫 | GND | j2 |
+| VDD | 灰 | 3V3 | j19 |
+| SCK | 白 | GPIO22 / I2C SCL | a17 |
+| SDA | 黑 | GPIO21 / I2C SDA | a14 |
+
+接线时 USB 保持拔掉，电池和面包板电源模块不接。OLED本身四根针的颜色，
+由正面丝印与背面已插线照片交叉确认；颜色不按常见电源线习惯推断。
+
+### 构建与烧录
+
+此工程使用与串口工程相同的平台版本，另固定 Adafruit SSD1306 2.5.17、
+Adafruit GFX Library 1.13.0；本次BusIO依赖实际解析为1.17.4。
+
+```powershell
+python -m platformio run --project-dir firmware/oled_smoke --environment oled_smoke
+python -m platformio run --project-dir firmware/oled_smoke --environment oled_smoke --target upload --upload-port COM5
+```
+
+本机仍用上面的专用Python、D盘工具目录和下载代理设置。
+程序在GPIO21/22上使用100kHz I2C，只探测SSD1306常用的0x3C/0x3D地址。
+无应答或初始化失败时每秒输出明确错误，保留现场以排查接线。
+
+### 验收与边界
+
+- 串口出现 `I2C_PROBE ... status=0`，随后出现 `OLED_INIT ... canvas=128x64`，证明连接设备有应答、程序已初始化绘图缓冲。
+- 实物应看到完整细边框、`WINDOW No.20`、`OLED 128x64`、I2C地址，以及每秒变化的秒数。
+- 串口 `OLED_UPDATE` 仅表示调用了画面更新，不能单独证明屏幕亮起或所有像素正确；实际画面需用户观察确认。
+- 未连接三个按钮，未实现房间、产品状态机、中文字体或存档；不改产品规则。

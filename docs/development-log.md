@@ -78,3 +78,20 @@ RUNNING uptime_ms=241317
 核实 OLED 的实际供电电压、驱动和分辨率，查阅套件配套资料后再给出接线表。
 接外设之前先拔掉开发板 USB；电池和面包板电源模块继续不接。
 首次烧录成功不等同于 P0 验收通过。
+
+## 2026-11-11：OLED接线与首次点亮准备
+
+- 用户提供套件教程入口 `https://doc.7gp.cn/esp32/`。已读取OLED章节和下载包中的Arduino/Python显示示例。
+- 资料存在旧LCD与OLED混用：接线图接3V3，示例用SSD1306；Python为128×64，Arduino仍为128×32。
+  首轮据此采用3.3V、128×64、SSD1306兼容配置进行验证，不将示例当作实物芯片身份的证明。
+- OLED正面丝印与已插线照片交叉确认：GND紫、VDD灰、SCK白、SDA黑。
+- 用户已报告紫色线插入j2；其余三根已给出j19 / a17 / a14接线指导，尚待反馈。
+  用户明确不需要逐根拍照，后续按文字确认推进；上电前仍需核对电源与线序。
+- 新增独立 `firmware/oled_smoke` 诊断工程：检测I2C应答，显示边框、文字、地址与秒数；不实现产品UI。
+- 编译：通过，返回0并显示SUCCESS，无编译警告；程序354868 / 1310720字节，RAM 23676 / 327680字节。
+- 实际库版本：Adafruit SSD1306 2.5.17、Adafruit GFX Library 1.13.0、Adafruit BusIO 1.17.4。
+- 编译命令：`python -m platformio run --project-dir firmware/oled_smoke --environment oled_smoke`。
+  本机日志：`D:\Window-No-20-Tools\oled-smoke-compile.log`。
+- 固件路径：`D:\Window-No-20-Tools\platformio-build\oled_smoke\firmware.bin`；
+  SHA-256：`8ca72bf9e82a1285eb8b7c60a7672812f2b710fd31b333018a73a0d93d4c2f4d`。
+- 烧录：未测。I2C应答与实际显示：未测。三个按钮：未接。
