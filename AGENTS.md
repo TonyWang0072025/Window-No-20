@@ -2,6 +2,8 @@
 
 > 阅读顺序：README.md → docs/design-baseline.md → docs/interaction-flows.md → docs/hardware-manufacturing.md → docs/codex-sprint-01.md → docs/acceptance-tests.md → docs/open-questions.md。
 
+跨对话续开发先读 `docs/NEXT-SESSION.md` 并核对实际分支/PR状态；交接记录不能替代已批准设计基线。
+
 ## 职责
 
 - ChatGPT：与产品作者讨论、更新已批准的需求、决定验收标准；Codex：在**被交办的任务范围内**完成代码、连接说明、测试、审查和实现记录。
