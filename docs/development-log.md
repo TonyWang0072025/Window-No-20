@@ -317,3 +317,47 @@ RUNNING uptime_ms=241317
   汇总正确分支、当前固件、最终接线/1kΩ共地支路、备用线材、CND局限、通信故障、验证与下一轮P1任务。
 - 同步前重新编译当前p0_room，通过（21.54秒）；没有改代码或重新烧录板内程序。
   原始结果为D:\Window-No-20-Tools\p0-handoff-final-build.log，编译通过与先前真机证据分开记录。
+
+## 2026-11-11：P1专注软件候选已上传，人工验收待进行
+
+- GitHub API确认PR #3为merged=true，合并提交`b9b64d6`；fetch后main一致、工作区干净，
+  从origin/main建立`codex/p1-focus-timer`。已读该main中的NEXT-SESSION、AGENTS及设计/验收资料。
+- 保持已验证的OLED P21/P22、按钮P25/P26/P27和b25—1kΩ—b35地支路，不要求重新搭建。
+  上传前枚举到CP210x COM5，并采到旧P0房间空闲状态。该次4.06秒10622字节含异常重复前段，
+  不据其统计运行/启动次数；原始证据留本机，不宣称串口问题已修复。
+- `FocusTimer`不依赖Arduino/GPIO/墙钟，使用64位单调毫秒。选时→进行→暂停/退出确认→完成或放弃，
+  保留毫秒余量，退出取消恢复原Running/Paused；归零与按键同刻先完成结算，不跳过完成页。
+- 先在旧RoomModel运行“书桌确认开始”测试，实际失败（仍为占位页）；实现后主机测试通过：
+  NAV33，P1_HOST149。覆盖五档真实时长与1/1/1/2/3奖励、完成刷新不重复、长暂停、退出冻结、
+  最后1ms、64位计时范围、连续会话、全新实例取消会话及真实去抖器。主机使用本机MSVC，无新增测试依赖。
+- 房间与输入仍沿用P0，书桌接入中文选时、书桌猫占位、中上倒计时、纯黑“暂停”/“专注完成”和退出提示。
+  29字12×12原型字形来自本机宋体栅格化，不上传字体文件；文字可读性待作者看屏确认。
+  正式猫/房间美术、翻书与伸懒腰仍未制作；未增加眨眼、舔毛。
+- 独立只读审查实跑主机测试，无Critical/Important；指出运行倒计时黑底遮瓶颈。
+  已下移专注态瓶子并增加真实缓冲区瓶口可见检查。修改后重新构建/上传，不用旧镜像结果冒充最终结果。
+- 最终ESP32编译通过（10.18秒）；Flash369376/1310720字节、RAM23772/327680字节；
+  应用镜像375648字节，SHA256 `add972b2564b3443f7c6708125de9675788a462ce50fd44249c7aaef27047ef6`。
+  沿用PlatformIO6.2.0/espressif32 8.0.0/esp32dev/Arduino-ESP32 3.3.12及既定Adafruit库。
+- esptool5.6.0默认stub、115200、压缩，只写当前0x10000应用分区，最终17.9秒，写后哈希通过、返回0。
+  受控RTS复位后采样4.03秒、874字节，未见此次样本异常重复；不扩大为串口长期稳定性结论。
+  清晰记录：
+
+  ```text
+  WINDOW_NO_20 P1_FOCUS v0.2 time=REAL reward_store=TEST_RAM
+  NAV_SELFTEST PASS checks=33
+  I2C_PROBE address=0x3C status=0
+  P1_VIEW_SELFTEST PASS running_room=YES bottle_visible=YES paused_black=YES completed_black=YES
+  P1_READY selftests=PASS page=ROOM selected=NONE reward_store=TEST_RAM
+  ```
+
+  随后房间空闲状态uptime=1001/2002/3002ms，焦点NONE、focus=IDLE、测试星0。
+  画面检查调用真实SSD1306绘图与缓冲区，检查暂停/完成的所有8192像素是否仅字区亮，不是肉眼实物验收。
+  启动检查使用独立模型，模拟完成不把测试星注入真实会话。
+- **奖励只在TEST RAM中即时增加，复位/断电清零，未读写NVS。**这是P1逻辑验证候选，
+  不满足正式“自然完成立即持久保存”；P2写入/读回、两个一次性标记及断电测试仍待完成。
+  默认板端没有加速开关；真实15分钟走时与P1按钮/文字实物观察均未测。
+- 下一项只请作者在房间按“切换→确认”，观察中文选时标题和15分钟；收到反馈再安排下一项。
+  自动检查通过不升级为A04–A11整项或完整P1通过，P0已通过结果也不重做。
+- 本机证据目录`D:\Window-No-20-Tools`：`p1-build.log`、`p1-final-build.log`、
+  `p1-stub-upload.log`、`p1-final-upload.log`、`p1-before-upload.bin/.json`、
+  `p1-startup.bin/.json`、`p1-final-startup.bin/.json`，不上传含设备标识原始日志。
