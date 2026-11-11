@@ -114,3 +114,16 @@ RUNNING uptime_ms=241317
 - 下一步请求用户先断USB，只拔面包板端的灰/白/黑三根，紫色j2及OLED端插头保留；
   再单独接USB，用相同程序文件进行外设隔离对比。先不重做安装、不改产品代码、不整片擦除Flash。
 - 排查参考：[乐鑫官方故障排除](https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html)。
+
+### 断开三根线后的对比复测
+
+- 用户确认已断USB、拔出面包板端灰/白/黑三根、保留紫色j2，并重新连接USB。
+- COM5状态OK；使用同一份固件、同一烧录工具5.4.0及115200波特率重新上传，未改代码、未整片擦除。
+  固件SHA-256仍为 `8ca72bf9e82a1285eb8b7c60a7672812f2b710fd31b333018a73a0d93d4c2f4d`。
+- 复测成功：引导程序、分区、boot_app0及OLED应用的写入校验全部通过，上传返回0、最终SUCCESS。
+  日志位于本机 `D:\Window-No-20-Tools\oled-smoke-upload-isolated.log`。
+- 随后按块接收5秒，取得5条 `OLED_ERROR NO_ACK_ON_0x3C_OR_0x3D`。
+  这符合电源/数据/时钟三根断开的状态，证明诊断应用已实际运行；不代表屏幕故障或显示验收通过。
+  原始记录：本机 `oled-isolated-runtime.log`、`oled-isolated-runtime-result.json`。
+- 移除三根并重新上电后成功，支持继续排查外接线路、接触及供电条件，但单次前后对比不能确定具体原因。
+- 恢复连线前请求用户用文字确认USB端左右第一根排针的实际行号，核对j2/j19/a17/a14孔位表的前提；不要求照片。
