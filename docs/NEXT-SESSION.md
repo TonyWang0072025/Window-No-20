@@ -5,6 +5,7 @@
 项目：《20号窗台》Window No.20。仓库：<https://github.com/TonyWang0072025/Window-No-20>。
 本机工作区：`D:\Vibe Coding Projects\硬件开发初试`。
 当前可运行开发分支：**`codex/p1-focus-timer`**，基于最新main建立。
+开发交付：[草稿PR #4](https://github.com/TonyWang0072025/Window-No-20/pull/4)，等待逐步P1实物验收；继续前核对最新合并状态。
 2026-11-11已通过GitHub核对：**PR #3已合并**，main为`b9b64d698db8d0ddef48c91e7573b3045096df10`。
 旧`codex/sprint-01-prototype`为P0历史分支；不能继续把它当作最新P1代码。
 
