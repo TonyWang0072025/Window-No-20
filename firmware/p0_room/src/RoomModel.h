@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
+#include "FocusTimer.h"
 
-enum class Key { Back, Switch, Confirm };
 enum class Selection : int8_t { None = -1, Desk, Stars, Mail, Clock };
 enum class Page { Room, Desk, Stars, Mail, Clock };
 
@@ -9,8 +9,19 @@ class RoomModel {
  public:
   Page page = Page::Room;
   Selection selected = Selection::None;
+  FocusTimer focus;
 
-  bool handle(Key key) {
+  bool tick(uint64_t nowMs) { return focus.tick(nowMs); }
+
+  bool handle(Key key, uint64_t nowMs) {
+    if (page == Page::Desk) {
+      const bool changed = focus.handle(key, nowMs);
+      if (focus.state() == FocusState::Idle || focus.state() == FocusState::Abandoned) {
+        page = Page::Room;
+        selected = Selection::None;
+      }
+      return changed;
+    }
     if (key == Key::Back) {
       if (page == Page::Room && selected == Selection::None) return false;
       page = Page::Room;
@@ -24,6 +35,7 @@ class RoomModel {
     }
     if (selected == Selection::None) return false;
     page = static_cast<Page>(static_cast<int>(selected) + 1);
+    if (page == Page::Desk) focus.enterSelection();
     return true;
   }
 
