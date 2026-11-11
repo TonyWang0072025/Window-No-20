@@ -136,3 +136,16 @@ RUNNING uptime_ms=241317
 - 本步骤没有重新烧录、没有测量供电电压/电流，不能据此宣称供电在所有负载下都稳定或此前校验问题已完全解决。
 - 本机证据：`D:\Window-No-20-Tools\oled-power-only-runtime.log` 和 `oled-power-only-runtime-result.json`。
 - 下一步断USB后恢复白色a17、黑色a14，再接USB，读取I2C状态并由用户观察实际画面。
+
+### 恢复两根信号线后：屏幕空白与启动异常
+
+- 用户报告已恢复接线，并确认屏幕完全没有显示；不视为显示验收通过。
+- 初次采样输出含非预期字节，控制台GBK编码无法打印替代字符而中断；改为先保存原始字节并转义输出。
+- 接着7.016秒块接收取得7条 `OLED_ERROR NO_ACK_ON_0x3C_OR_0x3D`，没有更新日志或复位标记。
+  证据：本机 `oled-connected-runtime.bin` / `.log` / `-result.json`。
+- 为排除程序只在setup检测、之后保持错误状态的影响，用esptool 5.6.0的HardReset进行一次受控复位，没有重新烧录。
+  首轮捕获到ROM启动日志，未见应用启动标记；下一轮捕获到
+  `rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)`，未见正常应用日志。
+  证据：本机 `oled-connected-reset-runtime.log` 和 `oled-connected-after-reset.log`。
+- 当前仍未确定是接触、实际接线、供电还是其他启动因素，不能把未应答直接等同于屏幕损坏。
+- 下一步只隔离白色a17时钟线：先断USB、拔面包板端白线，保留紫j2/灰j19/黑a14，再上电采样；不改程序、不重刷、不整套重接。
