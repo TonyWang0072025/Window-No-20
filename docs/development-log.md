@@ -127,3 +127,12 @@ RUNNING uptime_ms=241317
   原始记录：本机 `oled-isolated-runtime.log`、`oled-isolated-runtime-result.json`。
 - 移除三根并重新上电后成功，支持继续排查外接线路、接触及供电条件，但单次前后对比不能确定具体原因。
 - 恢复连线前请求用户用文字确认USB端左右第一根排针的实际行号，核对j2/j19/a17/a14孔位表的前提；不要求照片。
+
+### 灰色电源线单独恢复后的检查
+
+- 用户确认左右第一根排针都在第1行；随后断USB，只接回灰色j19，保留紫色j2，白/黑仍悬空，再接USB。
+- COM5设备状态OK。按块采样7.015秒，收到7条 `OLED_ERROR NO_ACK_ON_0x3C_OR_0x3D`，未见欠压或启动/复位标记。
+  这符合两根I2C信号线断开的预期，表明本次短时采样内诊断程序仍在运行。
+- 本步骤没有重新烧录、没有测量供电电压/电流，不能据此宣称供电在所有负载下都稳定或此前校验问题已完全解决。
+- 本机证据：`D:\Window-No-20-Tools\oled-power-only-runtime.log` 和 `oled-power-only-runtime-result.json`。
+- 下一步断USB后恢复白色a17、黑色a14，再接USB，读取I2C状态并由用户观察实际画面。
